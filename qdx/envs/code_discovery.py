@@ -60,6 +60,7 @@ class CodeDiscovery(environment.Environment):
             lbda = 100,
             pI=0.9,
             softness=1,
+            pruning_type="standard",
                 ):
         super().__init__()
         
@@ -70,7 +71,7 @@ class CodeDiscovery(environment.Environment):
         self.d = code_distance
         self.lbda = lbda # Rescales reward for better convergence
         self.pI = pI # Probability of no error
-        
+        self.pruning_type = pruning_type
         
         self.graph = graph
         if self.graph is None:
@@ -187,17 +188,25 @@ class CodeDiscovery(environment.Environment):
         
         results = []
         
-        for weight in range(1, self.d):
-            # Generate all combinations of errors with repetition based on the current weight
-            prod = list(list(tup) for tup in itertools.combinations_with_replacement(error_list, weight))
+        if self.pruning_type == "standard":
+            for weight in range(1, self.d):
+                # Generate all combinations of errors with repetition based on the current weight
+                prod = list(list(tup) for tup in itertools.combinations_with_replacement(error_list, weight))
             
-            # Pad the error list to match the number of physical qubits
-            prod = [pr + [0] * (self.n_qubits_physical - weight) for pr in prod]
+                # Pad the error list to match the number of physical qubits
+                prod = [pr + [0] * (self.n_qubits_physical - weight) for pr in prod]
             
-            # Generate distinct permutations of each product to form the error structure
-            result = list(list(distinct_permutations(pr, self.n_qubits_physical)) for pr in prod)
-            results.append(list(itertools.chain(*result)))
+                # Generate distinct permutations of each product to form the error structure
+                result = list(list(distinct_permutations(pr, self.n_qubits_physical)) for pr in prod)
+                results.append(list(itertools.chain(*result)))
             
+        elif self.pruning_type == "correction-only":
+            for weight in range(1, self.d):
+                prod = list(list(tup) for tup in itertools.combinations_with_replacement(error_list, weight))
+                prod = [pr + [0] * (self.n_qubits_physical - weight) for pr in prod]
+                result = list(list(distinct_permutations(pr, self.n_qubits_physical)) for pr in prod)
+                results.append(list(itertools.chain(*result)))
+
         error_structure = list(itertools.chain(*results))
         
         # Convert error structure to a JAX array for efficient computation

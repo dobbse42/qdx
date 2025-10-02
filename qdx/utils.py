@@ -79,7 +79,7 @@ class Utils():
         for m in range(1,softness+1):
 
             # Generate combinations of indices to place ones in the S structure
-            comb = list(combinations(range(num),m))
+            comb = list(combinations(range(num),m)) # ???
             indices = np.array(comb)
 
             # Fill the S structure with ones at the specified indices
@@ -90,7 +90,7 @@ class Utils():
             start_idx += i+1
             
         # Ensure there are no rows with all zeroes in the S structure
-        assert np.prod(np.any(S_struct, axis=1)), "There is a row with all zeroes"
+        assert np.prod(np.any(S_struct, axis=1)), "There is a row with all zeroes" # comment this out for speed
         
         # Convert the S structure to a JAX array for efficient computation
         self.S_struct = jnp.array(S_struct, dtype=jnp.uint8)
@@ -99,6 +99,8 @@ class Utils():
     
     def generate_S(self, tableau):
         # Generate the S matrix by multiplying the S structure with the tableau
+        print(f"self.S_struct shape: {jnp.shape(self.S_struct)}")
+        print(f"tableau shape: {jnp.shape(tableau)}")
         return (self.S_struct @ tableau) % 2
     
     def remove_rows(self, arr, row_indices):
@@ -113,14 +115,26 @@ class Utils():
     
     def check_KL(self, E_mu):
         # Check the Knill-Laflamme conditions for error correction.
-        
+        num_KL = 0
+        print(f"shape of E_mu: {jnp.shape(E_mu)}, shape of self.S: {jnp.shape(self.S)}")
+        # half_index = int(len(E_mu)/2)
+        quarter_index = int(len(E_mu)/4)
         # Determine if errors are in S by calculating the logical XOR between S and error operators, E_mu
-        inS = jax.vmap(jnp.logical_xor, in_axes=(None,0))(self.S, E_mu)
-        inS = jnp.prod(jnp.logical_not(inS), axis=-1)
-        
+        inS_1 = jax.vmap(jnp.logical_xor, in_axes=(None,0))(self.S, E_mu[:quarter_index])
+        inS_1 = jnp.prod(jnp.logical_not(inS_1), axis=-1)
+        num_KL += len(E_mu[:quarter_index]) - jnp.sum(jnp.any(((E_mu[:quarter_index] @ self.Omega) @ self.tableau[self.n_qubits_physical + self.n_qubits_logical:].T)%2, axis=1), axis=0) - jnp.sum(inS_1)
+        inS_2 = jax.vmap(jnp.logical_xor, in_axes=(None,0))(self.S, E_mu[quarter_index:2*quarter_index])
+        inS_2 = jnp.prod(jnp.logical_not(inS_2), axis=-1)
+        num_KL += len(E_mu[quarter_index:2*quarter_index]) - jnp.sum(jnp.any(((E_mu[quarter_index:2*quarter_index] @ self.Omega) @ self.tableau[self.n_qubits_physical + self.n_qubits_logical:].T)%2, axis=1), axis=0) - jnp.sum(inS_2)
+on $[[14, 2, 3]]$:        inS_3 = jax.vmap(jnp.logical_xor, in_axes=(None,0))(self.S, E_mu[2*quarter_index:3*quarter_index])
+        inS_3 = jnp.prod(jnp.logical_not(inS_3), axis=-1)
+        num_KL += len(E_mu[2*quarter_index:3*quarter_index]) - jnp.sum(jnp.any(((E_mu[2*quarter_index:3*quarter_index] @ self.Omega) @ self.tableau[self.n_qubits_physical + self.n_qubits_logical:].T)%2, axis=1), axis=0) - jnp.sum(inS_3)
+        inS_4 = jax.vmap(jnp.logical_xor, in_axes=(None,0))(self.S, E_mu[3*quarter_index:])
+        inS_4 = jnp.prod(jnp.logical_not(inS_4), axis=-1)
+        num_KL += len(E_mu[3*quarter_index:]) - jnp.sum(jnp.any(((E_mu[3*quarter_index:] @ self.Omega) @ self.tableau[self.n_qubits_physical + self.n_qubits_logical:].T)%2, axis=1), axis=0) - jnp.sum(inS_4)
+
         # Calculate the number of Knill-Laflamme conditions that are not satisfied
-        num_KL = len(E_mu) - jnp.sum(jnp.any(((E_mu @ self.Omega) @ self.tableau[self.n_qubits_physical + self.n_qubits_logical:].T)%2, axis=1), axis=0) - jnp.sum(inS)
-        
+        # num_KL = len(E_mu) - jnp.sum(jnp.any(((E_mu @ self.Omega) @ self.tableau[self.n_qubits_physical + self.n_qubits_logical:].T)%2, axis=1), axis=0) - jnp.sum(inS)
         return num_KL # np.min(KLs), np.argmin(KLs)
     
     def check_KL_cZ(self, E_mu, cZ):

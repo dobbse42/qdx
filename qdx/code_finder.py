@@ -1,7 +1,7 @@
 from qdx.envs.code_discovery import CodeDiscovery
-from qdx.envs.meta_code_discovery import MetaCodeDiscovery
-from qdx.envs.delta_code_discovery import DeltaCodeDiscovery
-from qdx.envs.max_code_discovery import MaxCodeDiscovery
+# from qdx.envs.meta_code_discovery import MetaCodeDiscovery
+# from qdx.envs.delta_code_discovery import DeltaCodeDiscovery
+# from qdx.envs.max_code_discovery import MaxCodeDiscovery
 from qdx.simulators.clifford_gates import CliffordGates
 import os 
 import jax
@@ -50,6 +50,16 @@ class CodeFinder:
                 graph.append((ii,ii+2))
                 graph.append((ii+2,ii))
                 
+
+        elif self.config["GRAPH"] == "equal-bipartite":
+            # bipartite graph where both sets are of size n/2
+            graph = []
+            for ii in range(self.config["N"]):
+                parity = ii % 2
+                for jj in range((parity+1) % 2, self.config["N"], 2):
+                    graph.append((ii, jj))
+
+
         self.graph = graph
         
         return 
@@ -76,9 +86,10 @@ class CodeFinder:
                                      max_steps = self.config["MAX_STEPS"], 
                                      lbda = self.config["LAMBDA"], 
                                      pI = self.config["P_I"], 
-                                     softness = self.config["SOFTNESS"])
+                                     softness = self.config["SOFTNESS"],
+                                     pruning_type = self.config["PRUNING-TYPE"])
             
-        elif self.config["ENV_TYPE"] == "NOISE-AWARE":
+        """elif self.config["ENV_TYPE"] == "NOISE-AWARE":
             self.env = MetaCodeDiscovery(self.config["N"], 
                                          self.config["K"], 
                                          self.config["D"],
@@ -109,7 +120,7 @@ class CodeFinder:
                                          max_steps = self.config["MAX_STEPS"],
                                          lbda = self.config["LAMBDA"],
                                          pI = self.config["P_I"], 
-                                         softness = self.config["SOFTNESS"])
+                                         softness = self.config["SOFTNESS"])"""
 
         return
     
