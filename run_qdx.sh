@@ -9,6 +9,8 @@
 
 #SBATCH --output=output/%x.%j.out
 
+cat "$0"
+
 # module load python-data
 module purge
 # module load gcc/13.2.0

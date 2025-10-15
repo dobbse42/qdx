@@ -1,0 +1,48 @@
+<svg viewBox="0 0 672 416"  version="1.1" xmlns="http://www.w3.org/2000/svg">
+<g id="qubit_lines">
+<path id="qubit_line:0" d="M64,64 L640,64 " stroke="black"/>
+<text dominant-baseline="central" text-anchor="end" font-family="monospace" font-size="12" x="64" y="64">q0</text>
+<path id="qubit_line:1" d="M64,128 L640,128 " stroke="black"/>
+<text dominant-baseline="central" text-anchor="end" font-family="monospace" font-size="12" x="64" y="128">q1</text>
+<path id="qubit_line:2" d="M64,192 L640,192 " stroke="black"/>
+<text dominant-baseline="central" text-anchor="end" font-family="monospace" font-size="12" x="64" y="192">q2</text>
+<path id="qubit_line:3" d="M64,256 L640,256 " stroke="black"/>
+<text dominant-baseline="central" text-anchor="end" font-family="monospace" font-size="12" x="64" y="256">q3</text>
+<path id="qubit_line:4" d="M64,320 L640,320 " stroke="black"/>
+<text dominant-baseline="central" text-anchor="end" font-family="monospace" font-size="12" x="64" y="320">q4</text>
+</g>
+<path d="M96,64 L96,256 " stroke="black"/>
+<circle cx="96" cy="64" r="12" stroke="none" fill="black"/>
+<circle cx="96" cy="256" r="12" stroke="black" fill="white"/>
+<path d="M84,256 L108,256 M96,244 L96,268 " stroke="black"/>
+<rect x="144" y="112" width="32" height="32" stroke="black" fill="white"/>
+<text dominant-baseline="central" text-anchor="middle" font-family="monospace" font-size="30" x="160" y="128">H</text>
+<path d="M224,128 L224,256 " stroke="black"/>
+<circle cx="224" cy="128" r="12" stroke="none" fill="black"/>
+<circle cx="224" cy="256" r="12" stroke="black" fill="white"/>
+<path d="M212,256 L236,256 M224,244 L224,268 " stroke="black"/>
+<rect x="208" y="48" width="32" height="32" stroke="black" fill="white"/>
+<text dominant-baseline="central" text-anchor="middle" font-family="monospace" font-size="30" x="224" y="64">H</text>
+<path d="M288,64 L288,192 " stroke="black"/>
+<circle cx="288" cy="64" r="12" stroke="none" fill="black"/>
+<circle cx="288" cy="192" r="12" stroke="black" fill="white"/>
+<path d="M276,192 L300,192 M288,180 L288,204 " stroke="black"/>
+<path d="M352,128 L352,192 " stroke="black"/>
+<circle cx="352" cy="128" r="12" stroke="none" fill="black"/>
+<circle cx="352" cy="192" r="12" stroke="black" fill="white"/>
+<path d="M340,192 L364,192 M352,180 L352,204 " stroke="black"/>
+<path d="M416,128 L416,320 " stroke="black"/>
+<circle cx="416" cy="128" r="12" stroke="none" fill="black"/>
+<circle cx="416" cy="320" r="12" stroke="black" fill="white"/>
+<path d="M404,320 L428,320 M416,308 L416,332 " stroke="black"/>
+<rect x="464" y="112" width="32" height="32" stroke="black" fill="white"/>
+<text dominant-baseline="central" text-anchor="middle" font-family="monospace" font-size="30" x="480" y="128">H</text>
+<path d="M544,64 L544,128 " stroke="black"/>
+<circle cx="544" cy="128" r="12" stroke="none" fill="black"/>
+<circle cx="544" cy="64" r="12" stroke="black" fill="white"/>
+<path d="M532,64 L556,64 M544,52 L544,76 " stroke="black"/>
+<path d="M608,64 L608,256 " stroke="black"/>
+<circle cx="608" cy="64" r="12" stroke="none" fill="black"/>
+<circle cx="608" cy="256" r="12" stroke="black" fill="white"/>
+<path d="M596,256 L620,256 M608,244 L608,268 " stroke="black"/>
+</svg>
