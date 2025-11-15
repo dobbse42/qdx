@@ -35,7 +35,7 @@ class EnvParams:
     max_steps_in_episode: int = 20
     
     
-class CodeDiscovery(environment.Environment):
+class DistributedCodeDiscovery(environment.Environment):
     """
     Environment for the automatic discovery of QEC codes and encodings.
     
@@ -220,10 +220,37 @@ class CodeDiscovery(environment.Environment):
         
         return E_mu, p_mu
 
-    
+    def check_KL_parallel(self, state: EnvState, params: Optional[EnvParams] = EnvParams):
+        num_cores = len(jax.devices())
+
+        sharded_E_mu = self.E_mu.reshape(num_cores, self.E_mu.shape[0] // num_cores, *self.E_mu.shape[1:])
+
+        pmapped_check_KL = jax.pmap(self.check_KL_single)
+        num_KLs = pmapped_check_KL(state, sharded_E_mu, params)
+        return num_KLs
+
+
+    def check_KL_single(self, state: EnvState, E_mu, params: Optional[EnvParams] = EnvParams):
+        # Check the Knill-Laflamme conditions for error correction. This is used to reward the agent
+        # Extract the stabilizer generators
+        check_matrix = state.tableau[self.n_qubits_physical + self.n_qubits_logical:]
+        
+        # Update the stabilizer group S
+        S = self.stabilizer_elements(check_matrix)
+        
+        # Determine if errors are in S by calculating the logical XOR between S and error operators, E_mu
+        inS = jax.vmap(jnp.logical_xor, in_axes=(None,0))(S, E_mu)
+        inS = jnp.prod(jnp.logical_not(inS), axis=-1)
+        
+        # Calculate the number of Knill-Laflamme conditions that are not satisfied. This is used for stopping criterion
+        self.num_KL = len(E_mu) - jnp.sum(jnp.any(((E_mu @ self.Omega) @ check_matrix.T)%2, axis=1), axis=0) - jnp.sum(inS)
+        
+        # Return the weighted KL sum rescaled by lbda
+        return self.lbda * (jnp.sum(self.p_mu) - jnp.sum(self.p_mu * jnp.any(((E_mu @ self.Omega) @ check_matrix.T)%2, axis=1), axis=0) - jnp.dot(self.p_mu, jnp.sum(inS, axis=-1)) )
+
+
     def check_KL(self, state: EnvState, params: Optional[EnvParams] = EnvParams):
         # Check the Knill-Laflamme conditions for error correction. This is used to reward the agent
-        
         # Extract the stabilizer generators
         check_matrix = state.tableau[self.n_qubits_physical + self.n_qubits_logical:]
         
@@ -251,7 +278,8 @@ class CodeDiscovery(environment.Environment):
         state = EnvState( (state.tableau @ self.actions[action]) % 2, state.time + 1)
         
         # Update KLs
-        reward = -self.check_KL(state)
+        # reward = -self.check_KL(state) 
+        reward = - self.check_KL_parallel(state)
 
         # Evaluate termination conditions
         done = self.is_terminal(state, params)
@@ -297,7 +325,7 @@ class CodeDiscovery(environment.Environment):
     @property
     def name(self) -> str:
         """Environment name."""
-        return "CodeDiscovery"
+        return "DistributedCodeDiscovery"
 
     @property
     def num_actions(self, params: Optional[EnvParams] = EnvParams) -> int:

@@ -13,6 +13,7 @@ from itertools import combinations
 import scipy.special as ss
 import numpy as np
 from jax import lax
+from numpy import random
 
 
 @struct.dataclass
@@ -35,7 +36,7 @@ class EnvParams:
     max_steps_in_episode: int = 20
     
     
-class CodeDiscovery(environment.Environment):
+class SampledCodeDiscovery(environment.Environment):
     """
     Environment for the automatic discovery of QEC codes and encodings.
     
@@ -61,6 +62,8 @@ class CodeDiscovery(environment.Environment):
             pI=0.9,
             softness=1,
             pruning_type="standard",
+            num_samples=(lambda x: x**2),
+            sample_interval=1
                 ):
         super().__init__()
         
@@ -72,6 +75,8 @@ class CodeDiscovery(environment.Environment):
         self.lbda = lbda # Rescales reward for better convergence
         self.pI = pI # Probability of no error
         self.pruning_type = pruning_type
+        self.num_samples = num_samples(n_qubits_physical)
+        self.sample_interval = sample_interval
         
         self.graph = graph
         if self.graph is None:
@@ -93,7 +98,7 @@ class CodeDiscovery(environment.Environment):
         self.Omega = jnp.kron(jnp.array([[0,1],[1,0]], dtype=jnp.uint8), jnp.eye(n_qubits_physical, dtype=jnp.uint8))
         
         # Initialize error operators and probabilities
-        self.E_mu, self.p_mu = self.error_operators()
+        self.E_mu, self.p_mu = self.sample_E_mu(self.num_samples)
         
         # Initialize stabilizer group structure
         self.generate_S_structure(softness) # This generates self.S_struct
@@ -220,7 +225,42 @@ class CodeDiscovery(environment.Environment):
         
         return E_mu, p_mu
 
-    
+
+    def sample_E_mu(self, num_samples):
+        """
+        Return a matrix of num_samples error operators from the error space.
+        """
+
+        error_list = [1,2,3] # Corresponds to X,Y,Z
+        rng = random.default_rng()
+        error_structure = []
+
+        # Determine weights of samples
+        weights = rng.integers(low=1, high=self.d, size=num_samples)
+        for sample_num in range(num_samples):
+            error_op = [0] * self.n_qubits_physical
+            # error_op = np.full(self.n_qubits_physical, 0)
+            # error_op = np.zeros(self.n_qubits_physical, dtype=int)
+            # Determine placement of errors
+            error_indices = rng.choice(self.n_qubits_physical, weights[sample_num], replace=False)
+            # Determine types of errors
+            error_types = rng.choice(3, weights[sample_num], replace=False)
+            # Construct error operator
+            for i, error_idx in enumerate(error_indices):
+                error_op[error_idx] = error_list[error_types[i]]
+            error_structure.append(error_op)
+        # Construct E_mu
+        E_mu = jnp.array([jnp.array(stim.PauliString(p).to_numpy()).flatten() for p in error_structure], dtype=jnp.uint8)
+
+        # p_X = p_Y = p_Z by assumption
+        p_channel = jnp.array([self.pI] + [(1.-self.pI)/3.]*3, dtype=jnp.float32)
+
+        # Generate p_mu using p_channel and error_structure
+        p_mu = jnp.array([jnp.prod(p_channel[jnp.array(error_pauli_character)]) for error_pauli_character in error_structure], dtype=jnp.float32)
+        
+        return E_mu, p_mu
+
+
     def check_KL(self, state: EnvState, params: Optional[EnvParams] = EnvParams):
         # Check the Knill-Laflamme conditions for error correction. This is used to reward the agent
         
@@ -250,6 +290,16 @@ class CodeDiscovery(environment.Environment):
         # Update state
         state = EnvState( (state.tableau @ self.actions[action]) % 2, state.time + 1)
         
+        # Take new samples from error channel
+        def get_new_sample():
+            return self.sample_E_mu(self.num_samples)
+
+        def keep_old_sample():
+            return self.E_mu, self.p_mu
+
+        sample_cond = (state.time % self.sample_interval == 0)
+        self.E_mu, self.p_mu = lax.cond(sample_cond, get_new_sample, keep_old_sample)
+
         # Update KLs
         reward = -self.check_KL(state)
 
@@ -297,7 +347,7 @@ class CodeDiscovery(environment.Environment):
     @property
     def name(self) -> str:
         """Environment name."""
-        return "CodeDiscovery"
+        return "SampledCodeDiscovery"
 
     @property
     def num_actions(self, params: Optional[EnvParams] = EnvParams) -> int:

@@ -69,6 +69,7 @@ class Utils():
         
         # Calculate the number of stabilizer elements
         soft_elements = int(sum([ss.binom(num,i) for i in range(1,softness+1)]))
+        print(f"size of the generated stabilizer group for softness = {softness}: {soft_elements}")
 
         # Create an array of zeros
         S_struct = np.zeros((soft_elements, num), dtype=int)
@@ -116,6 +117,7 @@ class Utils():
     def check_KL(self, E_mu):
         # Check the Knill-Laflamme conditions for error correction.
         num_KL = 0
+        # print(f"Stabilizer? matrix: \n{self.S}")
         print(f"shape of E_mu: {jnp.shape(E_mu)}, shape of self.S: {jnp.shape(self.S)}")
         # half_index = int(len(E_mu)/2)
         # quarter_index = int(len(E_mu)/4)

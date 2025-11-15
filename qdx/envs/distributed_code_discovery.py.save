@@ -35,7 +35,7 @@ class EnvParams:
     max_steps_in_episode: int = 20
     
     
-class CodeDiscovery(environment.Environment):
+class DistributedCodeDiscovery(environment.Environment):
     """
     Environment for the automatic discovery of QEC codes and encodings.
     
@@ -223,7 +223,7 @@ class CodeDiscovery(environment.Environment):
     
     def check_KL(self, state: EnvState, params: Optional[EnvParams] = EnvParams):
         # Check the Knill-Laflamme conditions for error correction. This is used to reward the agent
-        
+        num_cores = len(jax.devices())
         # Extract the stabilizer generators
         check_matrix = state.tableau[self.n_qubits_physical + self.n_qubits_logical:]
         
@@ -251,7 +251,7 @@ class CodeDiscovery(environment.Environment):
         state = EnvState( (state.tableau @ self.actions[action]) % 2, state.time + 1)
         
         # Update KLs
-        reward = -self.check_KL(state)
+        reward = -self.check_KL(state) 
 
         # Evaluate termination conditions
         done = self.is_terminal(state, params)
@@ -297,7 +297,7 @@ class CodeDiscovery(environment.Environment):
     @property
     def name(self) -> str:
         """Environment name."""
-        return "CodeDiscovery"
+        return "DistributedCodeDiscovery"
 
     @property
     def num_actions(self, params: Optional[EnvParams] = EnvParams) -> int:

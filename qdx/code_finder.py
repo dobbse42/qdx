@@ -1,9 +1,11 @@
 from qdx.envs.code_discovery import CodeDiscovery
-# from qdx.envs.meta_code_discovery import MetaCodeDiscovery
-# from qdx.envs.delta_code_discovery import DeltaCodeDiscovery
-# from qdx.envs.max_code_discovery import MaxCodeDiscovery
+from qdx.envs.meta_code_discovery import MetaCodeDiscovery
+from qdx.envs.delta_code_discovery import DeltaCodeDiscovery
+from qdx.envs.max_code_discovery import MaxCodeDiscovery
+from qdx.envs.distributed_code_discovery import DistributedCodeDiscovery
+from qdx.envs.sampled_code_discovery import SampledCodeDiscovery
 from qdx.simulators.clifford_gates import CliffordGates
-import os 
+import os
 import jax
 from qdx.make_train import make_train, ActorCritic
 from qdx.utils import Utils
@@ -18,7 +20,7 @@ import stim
 class CodeFinder:
     
     def __init__(self, config):
-        self.config = config   
+        self.config = config
         # Initialize the RL environment
         self.make_environment()
         
@@ -89,7 +91,7 @@ class CodeFinder:
                                      softness = self.config["SOFTNESS"],
                                      pruning_type = self.config["PRUNING-TYPE"])
             
-        """elif self.config["ENV_TYPE"] == "NOISE-AWARE":
+        elif self.config["ENV_TYPE"] == "NOISE-AWARE":
             self.env = MetaCodeDiscovery(self.config["N"], 
                                          self.config["K"], 
                                          self.config["D"],
@@ -120,7 +122,34 @@ class CodeFinder:
                                          max_steps = self.config["MAX_STEPS"],
                                          lbda = self.config["LAMBDA"],
                                          pI = self.config["P_I"], 
-                                         softness = self.config["SOFTNESS"])"""
+                                         softness = self.config["SOFTNESS"])
+            
+        elif self.config["ENV_TYPE"] == "DISTRIBUTED":
+            self.env = DistributedCodeDiscovery(self.config["N"], 
+                                     self.config["K"], 
+                                     self.config["D"],
+                                     gate_set, 
+                                     graph = self.graph, 
+                                     max_steps = self.config["MAX_STEPS"], 
+                                     lbda = self.config["LAMBDA"], 
+                                     pI = self.config["P_I"], 
+                                     softness = self.config["SOFTNESS"],
+                                     pruning_type = self.config["PRUNING-TYPE"])
+
+        elif self.config["ENV_TYPE"] == "SAMPLED":
+            self.env = SampledCodeDiscovery(self.config["N"], 
+                                     self.config["K"], 
+                                     self.config["D"],
+                                     gate_set, 
+                                     graph = self.graph, 
+                                     max_steps = self.config["MAX_STEPS"], 
+                                     lbda = self.config["LAMBDA"], 
+                                     pI = self.config["P_I"], 
+                                     softness = self.config["SOFTNESS"],
+                                     pruning_type = self.config["PRUNING-TYPE"],
+                                     num_samples = self.config["NUM_SAMPLES"],
+                                     sample_interval = self.config["SAMPLE_INTERVAL"],
+                                 )
 
         return
     
@@ -220,6 +249,7 @@ class CodeFinder:
 
         distance = KLs.count(0)+1
         # count number of zeros
+        # print(f"Stabilizer matrix: {utils.S}")
 
         return distance
     
